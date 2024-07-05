@@ -67,7 +67,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     private GraphicOverlay mGraphicOverlay;
     private FloatingBallLayout floatingBallLayout;
     private Spinner dropdown;
-
+    private TranslateManager translateManager;
     // Max width (portrait mode)
     private Integer mImageMaxWidth;
     // Max height (portrait mode)
@@ -89,6 +89,18 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         dropdown.setOnItemSelectedListener(this);
 
         displayFloatingBall();
+        translateManager = new TranslateManager();
+        translateManager.downloadModel(new TranslateManager.ModelDownloadCallback() {
+            @Override
+            public void onModelDownloaded() {
+                Log.d("TranslateManager", "Model downloaded");
+            }
+
+            @Override
+            public void onModelDownloadFailed(Exception e) {
+                Log.d("TranslateManager", "Failed to download model", e);
+            }
+        });
     }
 
     private void displayFloatingBall() {
@@ -109,6 +121,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 runMLKitTR();
             }
         });
+
         getWindow().getDecorView().post(new Runnable() {
             @Override
             public void run() {
@@ -198,8 +211,20 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                     rect.right += horizontal_margin;
                     rect.bottom += vertical_margin;
                     if (rect.contains(floatingBallX, floatingBallY)) {
-                        GraphicOverlay.Graphic textGraphic = new TextGraphic(mGraphicOverlay, elements.get(k));
-                        mGraphicOverlay.add(textGraphic);
+                        Text.Element textElement = elements.get(k);
+                        String text = textElement.getText();
+                        translateManager.translate(text, new TranslateManager.TranslationCallback() {
+                            @Override
+                            public void onTranslationSuccess(String translatedText) {
+                                Log.d("MLKit", "Translated text: " + translatedText);
+                                GraphicOverlay.Graphic textGraphic = new TextGraphic(mGraphicOverlay, textElement, translatedText);
+                                mGraphicOverlay.add(textGraphic);
+                            }
+                            @Override
+                            public void onTranslationFailed(Exception e) {
+                                Log.d("MLKit", "Failed to translate text", e);
+                            }
+                        });
                     }
                 }
                 /*
@@ -385,5 +410,9 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     public void onNothingSelected(AdapterView<?> parent) {
         // Do nothing
     }
-
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        translateManager.close();
+    }
 }

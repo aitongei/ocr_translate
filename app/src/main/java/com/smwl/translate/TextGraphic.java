@@ -38,10 +38,11 @@ public class TextGraphic extends Graphic {
     private final Paint rectPaint;
     private final Paint textPaint;
     private final Text.Element element;
+    private final String translated_text;
 
-    TextGraphic(GraphicOverlay overlay, Text.Element element) {
+    TextGraphic(GraphicOverlay overlay, Text.Element element, String translated_text) {
         super(overlay);
-
+        this.translated_text = translated_text;
         this.element = element;
 
         rectPaint = new Paint();
@@ -55,7 +56,7 @@ public class TextGraphic extends Graphic {
         textPaint.setColor(TEXT_COLOR);
         Rect bbox = element.getBoundingBox();
         assert bbox != null;
-        textPaint.setTextSize((float) ((bbox.bottom-bbox.top)*0.9));
+        textPaint.setTextSize((float) ((bbox.bottom - bbox.top) * 0.9));
         // Redraw the overlay, as this graphic has been added.
         postInvalidate();
     }
@@ -75,6 +76,6 @@ public class TextGraphic extends Graphic {
         canvas.drawRect(rect, rectPaint);
 
         // Renders the text at the bottom of the box.
-        canvas.drawText(element.getText(), rect.left, rect.bottom, textPaint);
+        canvas.drawText(translated_text, rect.left, rect.bottom, textPaint);
     }
 }

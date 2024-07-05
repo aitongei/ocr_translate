@@ -13,10 +13,10 @@ public class TranslateManager {
 
     private final Translator englishToChineseTranslator;
 
-    public TranslateManager(Context context) {
+    public TranslateManager() {
         TranslatorOptions options = new TranslatorOptions.Builder()
-                .setSourceLanguage(TranslateLanguage.ENGLISH)
-                .setTargetLanguage(TranslateLanguage.CHINESE)
+                .setSourceLanguage(TranslateLanguage.CHINESE)
+                .setTargetLanguage(TranslateLanguage.ENGLISH)
                 .build();
         englishToChineseTranslator = Translation.getClient(options);
     }
