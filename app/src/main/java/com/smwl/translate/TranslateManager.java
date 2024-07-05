@@ -13,15 +13,16 @@ public class TranslateManager {
 
     private final Translator englishToChineseTranslator;
 
-    public TranslateManager() {
+    public TranslateManager(String sourceLanguage, String targetLanguage) {
         TranslatorOptions options = new TranslatorOptions.Builder()
-                .setSourceLanguage(TranslateLanguage.CHINESE)
-                .setTargetLanguage(TranslateLanguage.ENGLISH)
+                .setSourceLanguage(sourceLanguage)
+                .setTargetLanguage(targetLanguage)
                 .build();
         englishToChineseTranslator = Translation.getClient(options);
     }
 
     public void downloadModel(final ModelDownloadCallback callback) {
+
         englishToChineseTranslator.downloadModelIfNeeded()
                 .addOnSuccessListener(new OnSuccessListener<Void>() {
                     @Override

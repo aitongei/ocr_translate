@@ -34,18 +34,15 @@ import android.view.Gravity;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.ArrayAdapter;
-import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.Spinner;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
-//import com.benjaminwan.ocrlibrary.Point;
-//import com.benjaminwan.ocrlibrary.TextBlock;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.mlkit.nl.translate.TranslateLanguage;
 import com.google.mlkit.vision.common.InputImage;
 import com.google.mlkit.vision.text.Text;
 import com.google.mlkit.vision.text.TextRecognition;
@@ -57,21 +54,24 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 
-//import com.benjaminwan.ocrlibrary.OcrEngine;
-//import com.benjaminwan.ocrlibrary.OcrResult;
 import android.widget.AdapterView;
+import android.widget.Toast;
 
 public class MainActivity extends AppCompatActivity implements AdapterView.OnItemSelectedListener {
     private ImageView mImageView;
     private Bitmap mSelectedImage;
     private GraphicOverlay mGraphicOverlay;
     private FloatingBallLayout floatingBallLayout;
-    private Spinner dropdown;
+    private Spinner imgSpinner;
+    private Spinner languageSpinner;
     private TranslateManager translateManager;
     // Max width (portrait mode)
     private Integer mImageMaxWidth;
     // Max height (portrait mode)
     private Integer mImageMaxHeight;
+
+    private String sourceLanguage = TranslateLanguage.CHINESE;
+    private String targetLanguage = TranslateLanguage.ENGLISH;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -81,24 +81,37 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         mImageView = findViewById(R.id.image_view);
         mGraphicOverlay = findViewById(R.id.graphic_overlay);
 
-        dropdown = findViewById(R.id.spinner);
+        imgSpinner = findViewById(R.id.img_spinner);
+        languageSpinner = findViewById(R.id.language_spinner);
         String[] items = new String[]{"Image 1", "Image 2", "Image 3", "Image 4", "Image 5", "Image 6"};
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout
+        String[] items2 = new String[]{"中译英", "英译中", "中译越"};
+        ArrayAdapter<String> imgAdapter = new ArrayAdapter<>(this, android.R.layout
                 .simple_spinner_dropdown_item, items);
-        dropdown.setAdapter(adapter);
-        dropdown.setOnItemSelectedListener(this);
+        ArrayAdapter<String> languageadapter = new ArrayAdapter<>(this, android.R.layout
+                .simple_spinner_dropdown_item, items2);
+        imgSpinner.setAdapter(imgAdapter);
+        languageSpinner.setAdapter(languageadapter);
+        imgSpinner.setOnItemSelectedListener(this);
+        languageSpinner.setOnItemSelectedListener(this);
 
         displayFloatingBall();
-        translateManager = new TranslateManager();
+        initTranslateManager(sourceLanguage, targetLanguage);
+    }
+
+    private void initTranslateManager(String sourceLanguage, String targetLanguage) {
+        translateManager = new TranslateManager(sourceLanguage, targetLanguage);
+        Toast.makeText(getApplicationContext(), "开始下载语言模型文件", Toast.LENGTH_SHORT).show();
         translateManager.downloadModel(new TranslateManager.ModelDownloadCallback() {
             @Override
             public void onModelDownloaded() {
                 Log.d("TranslateManager", "Model downloaded");
+                Toast.makeText(getApplicationContext(), "语言模型下载完成", Toast.LENGTH_SHORT).show();
             }
 
             @Override
             public void onModelDownloadFailed(Exception e) {
                 Log.d("TranslateManager", "Failed to download model", e);
+                Toast.makeText(getApplicationContext(), "语言模型下载失败", Toast.LENGTH_SHORT).show();
             }
         });
     }
@@ -130,54 +143,17 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         });
     }
 
-//    private void runOcrLiteTR() {
-//        Log.d("OcrEngine", "runOcrEngine");
-//        OcrEngine ocrEngine = new OcrEngine(this.getApplicationContext());
-//
-//        Bitmap boxImg = Bitmap.createBitmap(mSelectedImage.getWidth(), mSelectedImage.getHeight(), Bitmap.Config.ARGB_8888);
-//        int maxSize = max(mSelectedImage.getWidth(), mSelectedImage.getHeight());
-//        OcrResult result = ocrEngine.detect(mSelectedImage, boxImg, maxSize);
-//        /*
-//        Bitmap appScreenShot = captureScreenshot();
-//        Bitmap boxImg = Bitmap.createBitmap(appScreenShot.getWidth(), appScreenShot.getHeight(), Bitmap.Config.ARGB_8888);
-//        int maxSize = max(appScreenShot.getWidth(), appScreenShot.getHeight());
-//        OcrResult result = ocrEngine.detect(appScreenShot, boxImg, maxSize);
-//
-//         */
-//
-//        // mImageView.setImageBitmap(boxImg); // show bboxed image
-//        Log.d("OcrResult", result.toString());
-//
-//        float floatingBallX = floatingBallLayout.getLastX();
-//        float floatingBallY = floatingBallLayout.getLastY();
-//        Log.d("FloatingBall", "X: " + floatingBallX + " Y: " + floatingBallY);
-//        // draw the detected text blocks
-//        for (TextBlock block : result.getTextBlocks()) {
-//            List<Point> boxPoints = block.getBoxPoint();
-//            RectF rect = new RectF(boxPoints.get(0).getX(), boxPoints.get(0).getY(), boxPoints.get(2).getX(), boxPoints.get(2).getY());
-//            String text = block.getText();
-//            Log.d("OcrTextBlock", text);
-//            Log.d("OcrTextBlock", rect.toString());
-//            if (true | rect.contains(floatingBallX, floatingBallY)) {
-//                // RectF(467.0, 741.0, 553.0, 773.0)
-//                // String text = block.getText();
-//                Log.d("OcrTextBlock", text);
-//                GraphicOverlay.Graphic textGraphic = new OcrLiteTextGraphic(mGraphicOverlay, block);
-//                mGraphicOverlay.add(textGraphic);
-//            }
-//        }
-//    }
 
     public void runMLKitTR() {
         InputImage image = InputImage.fromBitmap(mSelectedImage, 0);
         TextRecognizer recognizer = TextRecognition.getClient(new ChineseTextRecognizerOptions.Builder().build());
-        dropdown.setEnabled(false);
+        imgSpinner.setEnabled(false);
         recognizer.process(image)
                 .addOnSuccessListener(
                         new OnSuccessListener<Text>() {
                             @Override
                             public void onSuccess(Text texts) {
-                                dropdown.setEnabled(true);
+                                imgSpinner.setEnabled(true);
                                 processMKKitTResult(texts);
                             }
                         })
@@ -186,7 +162,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                             @Override
                             public void onFailure(@NonNull Exception e) {
                                 // Task failed with an exception
-                                dropdown.setEnabled(true);
+                                imgSpinner.setEnabled(true);
                                 e.printStackTrace();
                             }
                         });
@@ -196,7 +172,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         List<Text.TextBlock> blocks = texts.getTextBlocks();
         mGraphicOverlay.clear();
         float floatingBallX = floatingBallLayout.getLastX();
-        float floatingBallY = floatingBallLayout.getLastY()-100;
+        float floatingBallY = floatingBallLayout.getLastY() - 100;
         final float horizontal_margin = 20;
         final float vertical_margin = 10;
         for (int i = 0; i < blocks.size(); i++) {
@@ -213,19 +189,23 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                     if (rect.contains(floatingBallX, floatingBallY)) {
                         Text.Element textElement = elements.get(k);
                         String text = textElement.getText();
-                        translateManager.translate(text, new TranslateManager.TranslationCallback() {
-                            @Override
-                            public void onTranslationSuccess(String translatedText) {
-                                Log.d("MLKit", "Translated text: " + translatedText);
-                                GraphicOverlay.Graphic textGraphic = new TextGraphic(mGraphicOverlay, textElement, translatedText);
-                                mGraphicOverlay.add(textGraphic);
-                            }
-                            @Override
-                            public void onTranslationFailed(Exception e) {
-                                Log.d("MLKit", "Failed to translate text", e);
-                            }
-                        });
+                        if (translateManager != null) {
+                            translateManager.translate(text, new TranslateManager.TranslationCallback() {
+                                @Override
+                                public void onTranslationSuccess(String translatedText) {
+                                    Log.d("MLKit", "Translated text: " + translatedText);
+                                    GraphicOverlay.Graphic textGraphic = new TextGraphic(mGraphicOverlay, textElement, translatedText);
+                                    mGraphicOverlay.add(textGraphic);
+                                }
+
+                                @Override
+                                public void onTranslationFailed(Exception e) {
+                                    Log.d("MLKit", "Failed to translate text", e);
+                                }
+                            });
+                        }
                     }
+
                 }
                 /*
                 GraphicOverlay.Graphic textGraphic = new TextGraphic(mGraphicOverlay, lines.get(j));
@@ -356,30 +336,55 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     @Override
     public void onItemSelected(AdapterView<?> parent, View v, int position, long id) {
         mGraphicOverlay.clear();
-        switch (position) {
-            case 0:
-                mSelectedImage = getBitmapFromAsset(this, "input.png");
-                break;
-            case 1:
-                // Whatever you want to happen when the thrid item gets selected
-                mSelectedImage = getBitmapFromAsset(this, "new_game.png");
-                break;
-            case 2:
-                // Whatever you want to happen when the thrid item gets selected
-                mSelectedImage = getBitmapFromAsset(this, "android_book.png");
-                break;
-            case 3:
-                // Whatever you want to happen when the thrid item gets selected
-                mSelectedImage = getBitmapFromAsset(this, "android_book_2.png");
-                break;
-            case 4:
-                // Whatever you want to happen when the thrid item gets selected
-                mSelectedImage = getBitmapFromAsset(this, "wikipedia.jpg");
-                break;
-            case 5:
-                // Whatever you want to happen when the thrid item gets selected
-                mSelectedImage = getBitmapFromAsset(this, "game3.png");
-                break;
+        if (parent.getId() == R.id.img_spinner) {
+            switch (position) {
+                case 0:
+                    mSelectedImage = getBitmapFromAsset(this, "input.png");
+                    break;
+                case 1:
+                    // Whatever you want to happen when the thrid item gets selected
+                    mSelectedImage = getBitmapFromAsset(this, "new_game.png");
+                    break;
+                case 2:
+                    // Whatever you want to happen when the thrid item gets selected
+                    mSelectedImage = getBitmapFromAsset(this, "android_book.png");
+                    break;
+                case 3:
+                    // Whatever you want to happen when the thrid item gets selected
+                    mSelectedImage = getBitmapFromAsset(this, "android_book_2.png");
+                    break;
+                case 4:
+                    // Whatever you want to happen when the thrid item gets selected
+                    mSelectedImage = getBitmapFromAsset(this, "wikipedia.jpg");
+                    break;
+                case 5:
+                    // Whatever you want to happen when the thrid item gets selected
+                    mSelectedImage = getBitmapFromAsset(this, "game3.png");
+                    break;
+                default:
+                    break;
+            }
+        } else if (parent.getId() == R.id.language_spinner) {
+            if (translateManager != null) {
+                translateManager.close();
+            }
+            switch (position) {
+                case 0:
+                    sourceLanguage = TranslateLanguage.CHINESE;
+                    targetLanguage = TranslateLanguage.ENGLISH;
+                    break;
+                case 1:
+                    sourceLanguage = TranslateLanguage.ENGLISH;
+                    targetLanguage = TranslateLanguage.CHINESE;
+                    break;
+                case 2:
+                    sourceLanguage = TranslateLanguage.CHINESE;
+                    targetLanguage = TranslateLanguage.VIETNAMESE;
+                    break;
+                default:
+                    break;
+            }
+            initTranslateManager(sourceLanguage, targetLanguage);
         }
         if (mSelectedImage != null) {
             // Get the dimensions of the View
@@ -410,6 +415,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     public void onNothingSelected(AdapterView<?> parent) {
         // Do nothing
     }
+
     @Override
     protected void onDestroy() {
         super.onDestroy();
